@@ -195,6 +195,40 @@
         <!-- 借用表單 -->
         <template x-if="formMode==='borrow'">
           <form @submit.prevent="submitBorrow" class="space-y-4">
+            <div>
+              <label class="text-sm font-bold text-wood-dark/80">老師姓名</label>
+              <input list="teacherNames" x-model="borrowForm.borrower" required placeholder="例如：王老師"
+                class="mt-1 w-full rounded-xl border bg-paper px-3 py-2 text-sm"
+                :class="!borrowForm.borrower.trim() ? 'border-coral/60' : 'border-wood-light/50'">
+              <datalist id="teacherNames">
+                <template x-for="n in teacherSuggestions" :key="n"><option :value="n"></option></template>
+              </datalist>
+              <p x-show="!borrowForm.borrower.trim()" class="text-coral text-xs font-bold mt-1">必填</p>
+            </div>
+            <div>
+              <label class="text-sm font-bold text-wood-dark/80">班級</label>
+              <select x-model="borrowForm.className" required class="mt-1 w-full rounded-xl border bg-paper px-3 py-2 text-sm"
+                :class="!borrowForm.className ? 'border-coral/60' : 'border-wood-light/50'">
+                <option value="">請選擇班級</option>
+                <template x-for="c in classes" :key="c">
+                  <option :value="c" x-text="c"></option>
+                </template>
+              </select>
+              <p x-show="!borrowForm.className" class="text-coral text-xs font-bold mt-1">必填</p>
+            </div>
+
+            <!-- Step 1：先選類別 -->
+            <div>
+              <label class="text-sm font-bold text-wood-dark/80">① 選擇類別（可切換類別繼續複選其他項目）</label>
+              <select x-model="borrowForm.categoryId" required
+                class="mt-1 w-full rounded-xl border border-wood-light/50 bg-paper px-3 py-2 text-sm">
+                <option value="">請選擇類別</option>
+                <template x-for="cat in categories" :key="cat.id">
+                  <option :value="cat.id" x-text="`${cat.emoji} ${cat.name}`"></option>
+                </template>
+              </select>
+            </div>
+
             <div class="bg-cream rounded-2xl p-3">
               <label class="text-xs font-bold text-wood-dark/70">🔎 查詢班級／老師已借用未歸還的項目</label>
               <input type="text" x-model="borrowLookupText" placeholder="輸入班級或老師姓名，例如：向日葵班 或 林老師"
@@ -249,40 +283,6 @@
                 </div>
               </div>
             </template>
-
-            <div>
-              <label class="text-sm font-bold text-wood-dark/80">老師姓名</label>
-              <input list="teacherNames" x-model="borrowForm.borrower" required placeholder="例如：王老師"
-                class="mt-1 w-full rounded-xl border bg-paper px-3 py-2 text-sm"
-                :class="!borrowForm.borrower.trim() ? 'border-coral/60' : 'border-wood-light/50'">
-              <datalist id="teacherNames">
-                <template x-for="n in teacherSuggestions" :key="n"><option :value="n"></option></template>
-              </datalist>
-              <p x-show="!borrowForm.borrower.trim()" class="text-coral text-xs font-bold mt-1">必填</p>
-            </div>
-            <div>
-              <label class="text-sm font-bold text-wood-dark/80">班級</label>
-              <select x-model="borrowForm.className" required class="mt-1 w-full rounded-xl border bg-paper px-3 py-2 text-sm"
-                :class="!borrowForm.className ? 'border-coral/60' : 'border-wood-light/50'">
-                <option value="">請選擇班級</option>
-                <template x-for="c in classes" :key="c">
-                  <option :value="c" x-text="c"></option>
-                </template>
-              </select>
-              <p x-show="!borrowForm.className" class="text-coral text-xs font-bold mt-1">必填</p>
-            </div>
-
-            <!-- Step 1：先選類別 -->
-            <div>
-              <label class="text-sm font-bold text-wood-dark/80">① 選擇類別（可切換類別繼續複選其他項目）</label>
-              <select x-model="borrowForm.categoryId" required
-                class="mt-1 w-full rounded-xl border border-wood-light/50 bg-paper px-3 py-2 text-sm">
-                <option value="">請選擇類別</option>
-                <template x-for="cat in categories" :key="cat.id">
-                  <option :value="cat.id" x-text="`${cat.emoji} ${cat.name}`"></option>
-                </template>
-              </select>
-            </div>
 
             <!-- Step 2：該類別下的全部項目，可複選借用 -->
             <template x-if="borrowForm.categoryId">
@@ -376,6 +376,29 @@
                 </div>
               </div>
             </template>
+
+            <div class="bg-cream rounded-2xl p-3">
+              <label class="text-xs font-bold text-wood-dark/70">📅 依日期查詢當天全部歸還項目</label>
+              <input type="date" x-model="returnDateLookup"
+                class="mt-1 w-full rounded-xl border border-wood-light/50 bg-paper px-3 py-2 text-sm">
+              <template x-if="returnDateLookup">
+                <div class="mt-2 space-y-2 max-h-48 overflow-y-auto">
+                  <template x-for="r in returnDateLookupMatches" :key="r.id">
+                    <div class="flex items-center gap-2 bg-paper rounded-lg p-2 border border-wood-light/30">
+                      <img x-show="photoOf(getItemById(r.itemId))" :src="photoOf(getItemById(r.itemId))"
+                        class="w-8 h-8 rounded-lg object-cover border border-wood-light/30">
+                      <div x-show="!photoOf(getItemById(r.itemId))" class="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                        :style="categoryStyleByName(r.category)" x-text="categoryEmojiByName(r.category)"></div>
+                      <div class="flex-1">
+                        <p class="text-xs font-bold" x-text="r.itemName"></p>
+                        <p class="text-[11px] text-wood-dark/50" x-text="`${r.borrower}（${r.className}）－歸還 ${r.qty} 件`"></p>
+                      </div>
+                    </div>
+                  </template>
+                  <p x-show="returnDateLookupMatches.length===0" class="text-xs text-wood-dark/40 text-center py-2">當天沒有歸還紀錄</p>
+                </div>
+              </template>
+            </div>
 
             <div>
               <label class="text-sm font-bold text-wood-dark/80">歸還日期</label>
@@ -919,6 +942,7 @@ function kgApp() {
     shareLinkNotice: '',
     idleTimer: null,
     borrowLookupText: '',
+    returnDateLookup: '',
     browseCategoryFilter: '',
     itemFormOpen: false,
     categoryFormOpen: false,
@@ -1399,6 +1423,13 @@ function kgApp() {
       const text = this.borrowLookupText.trim();
       if (!text) return [];
       return this.openRecords.filter(r => r.borrower.includes(text) || r.className.includes(text));
+    },
+
+    get returnDateLookupMatches() {
+      if (!this.returnDateLookup) return [];
+      return this.records
+        .filter(r => r.returnDate === this.returnDateLookup)
+        .sort((a, b) => (a.returnTimestamp || '').localeCompare(b.returnTimestamp || ''));
     },
 
     isReturnSelected(recordId) {
